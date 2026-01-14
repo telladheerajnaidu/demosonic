@@ -7,12 +7,12 @@
     <style>
         :root {
             /* Branding: Writesonic-inspired Dark Mode */
-            --bg-color: #000000;       /* Pitch black background */
-            --card-bg: #121212;        /* Dark gray card */
-            --input-bg: #1e1e1e;       /* Input fields */
+            --bg-color: #000000;       
+            --card-bg: #121212;        
+            --input-bg: #1e1e1e;       
             --text-main: #ffffff;
             --text-muted: #a0a0a0;
-            --accent-primary: #6e41e2; /* Purple accent */
+            --accent-primary: #6e41e2; 
             --accent-hover: #5835b0;
             --border-color: #333333;
             --success: #2ecc71;
@@ -104,10 +104,6 @@
             box-shadow: 0 0 0 4px rgba(110, 65, 226, 0.15);
         }
 
-        input::placeholder {
-            color: #555;
-        }
-
         /* API Key Specifics */
         .api-section {
             border-bottom: 1px solid var(--border-color);
@@ -135,10 +131,6 @@
             transform: translateY(-1px);
         }
 
-        .btn:active {
-            transform: translateY(0);
-        }
-
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
@@ -147,7 +139,7 @@
 
         /* Results Area */
         #results-container {
-            display: none; /* Hidden by default */
+            display: none;
             margin-top: 2rem;
             animation: fadeIn 0.4s ease-out;
         }
@@ -169,7 +161,7 @@
             border-radius: 8px;
             padding: 1.5rem;
             border-left: 4px solid var(--accent-primary);
-            white-space: pre-wrap; /* Preserves formatting */
+            white-space: pre-wrap; 
             font-size: 0.95rem;
             line-height: 1.7;
             color: #eee;
@@ -191,7 +183,7 @@
             color: var(--text-main);
         }
 
-        /* Loading Spinner & Animations */
+        /* Loading Spinner */
         .spinner {
             display: inline-block;
             width: 18px;
@@ -231,7 +223,7 @@
         <main class="card">
             <div class="api-section">
                 <div class="form-group">
-                    <label for="apiKey">Google Gemini API Key (Free Tier OK)</label>
+                    <label for="apiKey">Google Gemini API Key</label>
                     <input type="password" id="apiKey" placeholder="Paste key (starts with AIza...)" autocomplete="off">
                 </div>
             </div>
@@ -266,8 +258,10 @@
 
     <script>
         // --- Configuration ---
-        // Using v1 endpoint with gemini-pro (Stable for Free Tier)
-        const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent";
+        // We use v1beta with gemini-1.5-flash. This is the correct combination for 2025 Free Tier.
+        const API_VERSION = 'v1beta';
+        const MODEL_NAME = 'gemini-1.5-flash';
+        const BASE_URL = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent`;
 
         // --- DOM Elements ---
         const scanBtn = document.getElementById('scanBtn');
@@ -286,17 +280,14 @@
 
         // --- Main Logic ---
         async function handleScan() {
-            // 1. Get Values
             const apiKey = apiKeyInput.value.trim();
             const myUrl = myUrlInput.value.trim();
             const compUrl = compUrlInput.value.trim();
             const topic = topicInput.value.trim();
 
-            // 2. Clear previous state
             hideError();
             resultsContainer.style.display = 'none';
 
-            // 3. Validation
             if (!apiKey) {
                 showError("Please enter your Google Gemini API Key.");
                 return;
@@ -306,15 +297,15 @@
                 return;
             }
 
-            // 4. Set Loading
             setLoading(true);
 
-            // 5. Prepare Prompt
             const prompt = `Analyze the gap between Brand A (${myUrl}) and Brand B (${compUrl}) for the topic "${topic}". List 3 things Brand B covers that Brand A is missing. Keep it short and actionable.`;
 
-            // 6. API Call
             try {
-                const response = await fetch(`${API_URL}?key=${apiKey}`, {
+                // Correct URL construction
+                const fetchUrl = `${BASE_URL}?key=${apiKey}`;
+                
+                const response = await fetch(fetchUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -327,32 +318,30 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error?.message || `API Error: ${response.statusText}`);
+                    // Try to extract a specific error message from the API
+                    const apiErrorMsg = data.error?.message || data.error?.status || "Unknown API Error";
+                    throw new Error(apiErrorMsg);
                 }
 
-                // 7. Parse Result
                 if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
                     const text = data.candidates[0].content.parts[0].text;
                     displayResults(text);
-                } else if (data.promptFeedback && data.promptFeedback.blockReason) {
-                    throw new Error(`Content blocked by safety filters: ${data.promptFeedback.blockReason}`);
                 } else {
-                    throw new Error("No results returned. Try a different topic.");
+                    throw new Error("No content generated. The response might have been blocked by safety settings.");
                 }
 
             } catch (err) {
-                showError(err.message);
+                console.error(err);
+                showError(`Error: ${err.message}`);
             } finally {
                 setLoading(false);
             }
         }
 
         // --- Helper Functions ---
-
         function displayResults(text) {
             resultContent.innerText = text;
             resultsContainer.style.display = 'block';
-            // Scroll to results
             resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
@@ -378,16 +367,12 @@
         function handleCopy() {
             const text = resultContent.innerText;
             if (!text) return;
-
             navigator.clipboard.writeText(text).then(() => {
                 const originalText = copyBtn.innerText;
                 copyBtn.innerText = "Copied!";
-                copyBtn.style.borderColor = "var(--success)";
                 copyBtn.style.color = "var(--success)";
-                
                 setTimeout(() => {
                     copyBtn.innerText = originalText;
-                    copyBtn.style.borderColor = "";
                     copyBtn.style.color = "";
                 }, 2000);
             });
