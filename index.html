@@ -258,9 +258,10 @@
 
     <script>
         // --- Configuration ---
-        // We use v1beta with gemini-1.5-flash. This is the correct combination for 2025 Free Tier.
+        // UPDATE: Switched to gemini-2.0-flash which is the current stable model.
+        // We use v1beta as it supports the 2.0 series.
         const API_VERSION = 'v1beta';
-        const MODEL_NAME = 'gemini-1.5-flash';
+        const MODEL_NAME = 'gemini-2.0-flash'; 
         const BASE_URL = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent`;
 
         // --- DOM Elements ---
@@ -302,7 +303,6 @@
             const prompt = `Analyze the gap between Brand A (${myUrl}) and Brand B (${compUrl}) for the topic "${topic}". List 3 things Brand B covers that Brand A is missing. Keep it short and actionable.`;
 
             try {
-                // Correct URL construction
                 const fetchUrl = `${BASE_URL}?key=${apiKey}`;
                 
                 const response = await fetch(fetchUrl, {
@@ -318,16 +318,23 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    // Try to extract a specific error message from the API
-                    const apiErrorMsg = data.error?.message || data.error?.status || "Unknown API Error";
-                    throw new Error(apiErrorMsg);
+                    // Specific error handling to help debug model issues
+                    const status = data.error?.code || response.status;
+                    const message = data.error?.message || "Unknown error";
+                    
+                    if (status === 404) {
+                         throw new Error(`Model not found. The model '${MODEL_NAME}' might be deprecated or your API key may not have access to it.`);
+                    }
+                    throw new Error(message);
                 }
 
                 if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
                     const text = data.candidates[0].content.parts[0].text;
                     displayResults(text);
+                } else if (data.promptFeedback && data.promptFeedback.blockReason) {
+                    throw new Error(`Content blocked: ${data.promptFeedback.blockReason}`);
                 } else {
-                    throw new Error("No content generated. The response might have been blocked by safety settings.");
+                    throw new Error("No results returned. Try a different topic.");
                 }
 
             } catch (err) {
