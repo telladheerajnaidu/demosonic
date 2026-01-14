@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Competitor Gap Scanner</title>
+    <title>Competitor Gap Scanner (Perplexity)</title>
     <style>
         :root {
             /* Branding: Writesonic-inspired Dark Mode */
@@ -12,8 +12,8 @@
             --input-bg: #1e1e1e;       
             --text-main: #ffffff;
             --text-muted: #a0a0a0;
-            --accent-primary: #6e41e2; 
-            --accent-hover: #5835b0;
+            --accent-primary: #22b8cf; /* Perplexity Cyan-Blue */
+            --accent-hover: #15aabf;
             --border-color: #333333;
             --success: #2ecc71;
             --error: #ff4d4d;
@@ -79,6 +79,15 @@
             margin-bottom: 1.25rem;
         }
 
+        .form-row {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
         label {
             display: block;
             font-size: 0.85rem;
@@ -87,7 +96,7 @@
             font-weight: 500;
         }
 
-        input {
+        input, select {
             width: 100%;
             padding: 14px 16px;
             background-color: var(--input-bg);
@@ -96,12 +105,28 @@
             color: var(--text-main);
             font-size: 1rem;
             transition: all 0.2s ease;
+            appearance: none; 
         }
 
-        input:focus {
+        /* Custom Arrow for Select */
+        .select-wrapper {
+            position: relative;
+        }
+        .select-wrapper::after {
+            content: '▼';
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+
+        input:focus, select:focus {
             outline: none;
             border-color: var(--accent-primary);
-            box-shadow: 0 0 0 4px rgba(110, 65, 226, 0.15);
+            box-shadow: 0 0 0 4px rgba(34, 184, 207, 0.15);
         }
 
         /* API Key Specifics */
@@ -116,11 +141,11 @@
             width: 100%;
             padding: 16px;
             background-color: var(--accent-primary);
-            color: white;
+            color: #000; /* Dark text for contrast on Cyan */
             border: none;
             border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             transition: all 0.2s;
             margin-top: 0.5rem;
@@ -188,9 +213,9 @@
             display: inline-block;
             width: 18px;
             height: 18px;
-            border: 2px solid rgba(255,255,255,0.3);
+            border: 2px solid rgba(0,0,0,0.3);
             border-radius: 50%;
-            border-top-color: #fff;
+            border-top-color: #000;
             animation: spin 0.8s linear infinite;
             margin-right: 8px;
             vertical-align: middle;
@@ -208,6 +233,12 @@
             text-align: center;
         }
 
+        .warning-note {
+            font-size: 0.8rem;
+            color: #e67e22;
+            margin-top: 0.5rem;
+        }
+
         @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
@@ -217,14 +248,29 @@
     <div class="container">
         <header>
             <h1>Competitor Gap Scanner</h1>
-            <p class="subtitle">Enter URLs to find actionable gaps instantly.</p>
+            <p class="subtitle">Powered by Perplexity (Real-Time Search)</p>
         </header>
 
         <main class="card">
             <div class="api-section">
-                <div class="form-group">
-                    <label for="apiKey">Google Gemini API Key</label>
-                    <input type="password" id="apiKey" placeholder="Paste key (starts with AIza...)" autocomplete="off">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label for="apiKey">Perplexity API Key</label>
+                        <input type="password" id="apiKey" placeholder="pplx-xxxxxxxx..." autocomplete="off">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="modelSelect">Model</label>
+                        <div class="select-wrapper">
+                            <select id="modelSelect">
+                                <option value="sonar" selected>Sonar (Fast)</option>
+                                <option value="sonar-pro">Sonar Pro (Deep)</option>
+                                <option value="sonar-reasoning">Sonar Reasoning</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="corsNote" class="warning-note" style="display:none;">
+                    Note: If scanning fails, you may need a CORS browser extension for local testing.
                 </div>
             </div>
 
@@ -258,22 +304,20 @@
 
     <script>
         // --- Configuration ---
-        // UPDATE: Switched to gemini-2.0-flash which is the current stable model.
-        // We use v1beta as it supports the 2.0 series.
-        const API_VERSION = 'v1beta';
-        const MODEL_NAME = 'gemini-2.0-flash'; 
-        const BASE_URL = `https://generativelanguage.googleapis.com/${API_VERSION}/models/${MODEL_NAME}:generateContent`;
+        const PERPLEXITY_ENDPOINT = "https://api.perplexity.ai/chat/completions";
 
         // --- DOM Elements ---
         const scanBtn = document.getElementById('scanBtn');
         const copyBtn = document.getElementById('copyBtn');
         const apiKeyInput = document.getElementById('apiKey');
+        const modelSelect = document.getElementById('modelSelect');
         const myUrlInput = document.getElementById('myUrl');
         const compUrlInput = document.getElementById('compUrl');
         const topicInput = document.getElementById('topic');
         const resultsContainer = document.getElementById('results-container');
         const resultContent = document.getElementById('resultContent');
         const errorMsg = document.getElementById('errorMsg');
+        const corsNote = document.getElementById('corsNote');
 
         // --- Event Listeners ---
         scanBtn.addEventListener('click', handleScan);
@@ -282,15 +326,15 @@
         // --- Main Logic ---
         async function handleScan() {
             const apiKey = apiKeyInput.value.trim();
+            const modelName = modelSelect.value;
             const myUrl = myUrlInput.value.trim();
             const compUrl = compUrlInput.value.trim();
             const topic = topicInput.value.trim();
 
-            hideError();
-            resultsContainer.style.display = 'none';
+            resetUI();
 
             if (!apiKey) {
-                showError("Please enter your Google Gemini API Key.");
+                showError("Please enter your Perplexity API Key (starts with pplx-).");
                 return;
             }
             if (!myUrl || !compUrl || !topic) {
@@ -300,46 +344,66 @@
 
             setLoading(true);
 
-            const prompt = `Analyze the gap between Brand A (${myUrl}) and Brand B (${compUrl}) for the topic "${topic}". List 3 things Brand B covers that Brand A is missing. Keep it short and actionable.`;
+            // Perplexity requires a specific message format
+            const prompt = `You are a Competitor Analysis Expert.
+            
+            Please analyze the gap between:
+            Brand A: ${myUrl}
+            Brand B: ${compUrl}
+            
+            Topic: "${topic}"
+            
+            Task: List 3 specific things Brand B covers/does that Brand A is missing.
+            Constraint: Keep it actionable, short, and use bullet points.`;
 
             try {
-                const fetchUrl = `${BASE_URL}?key=${apiKey}`;
-                
-                const response = await fetch(fetchUrl, {
+                const response = await fetch(PERPLEXITY_ENDPOINT, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
                     body: JSON.stringify({
-                        contents: [{
-                            parts: [{ text: prompt }]
-                        }]
+                        model: modelName,
+                        messages: [
+                            { role: "system", content: "You are a helpful market research assistant. Be precise and concise." },
+                            { role: "user", content: prompt }
+                        ],
+                        // Max tokens to prevent huge responses
+                        max_tokens: 1000 
                     })
                 });
 
                 const data = await response.json();
 
                 if (!response.ok) {
-                    // Specific error handling to help debug model issues
-                    const status = data.error?.code || response.status;
-                    const message = data.error?.message || "Unknown error";
+                    const status = response.status;
+                    let message = data.error?.message || "Unknown error";
                     
-                    if (status === 404) {
-                         throw new Error(`Model not found. The model '${MODEL_NAME}' might be deprecated or your API key may not have access to it.`);
-                    }
+                    if (status === 401) message = "Invalid API Key. Please check your Perplexity key.";
+                    if (status === 403) message = "Access Forbidden. Your key might lack credit.";
+                    
                     throw new Error(message);
                 }
 
-                if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
-                    const text = data.candidates[0].content.parts[0].text;
+                // Parse Result (Standard OpenAI Format)
+                if (data.choices && data.choices.length > 0) {
+                    const text = data.choices[0].message.content;
                     displayResults(text);
-                } else if (data.promptFeedback && data.promptFeedback.blockReason) {
-                    throw new Error(`Content blocked: ${data.promptFeedback.blockReason}`);
                 } else {
-                    throw new Error("No results returned. Try a different topic.");
+                    throw new Error("No content generated.");
                 }
 
             } catch (err) {
                 console.error(err);
-                showError(`Error: ${err.message}`);
+                // Handle CORS errors specifically as they are common in browser-to-server API calls
+                if (err.message === "Failed to fetch") {
+                    showError("Connection Failed. This is likely a CORS issue. Since Perplexity blocks direct browser requests for security, please try using a 'CORS Unblock' browser extension for testing, or run this file on a local server.");
+                    corsNote.style.display = 'block';
+                } else {
+                    showError(`Error: ${err.message}`);
+                }
             } finally {
                 setLoading(false);
             }
@@ -355,7 +419,7 @@
         function setLoading(isLoading) {
             if (isLoading) {
                 scanBtn.disabled = true;
-                scanBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
+                scanBtn.innerHTML = '<span class="spinner"></span> Scanning Online...';
             } else {
                 scanBtn.disabled = false;
                 scanBtn.innerText = 'Scan for Gaps';
@@ -367,8 +431,10 @@
             errorMsg.style.display = 'block';
         }
 
-        function hideError() {
+        function resetUI() {
             errorMsg.style.display = 'none';
+            corsNote.style.display = 'none';
+            resultsContainer.style.display = 'none';
         }
 
         function handleCopy() {
@@ -378,9 +444,11 @@
                 const originalText = copyBtn.innerText;
                 copyBtn.innerText = "Copied!";
                 copyBtn.style.color = "var(--success)";
+                copyBtn.style.borderColor = "var(--success)";
                 setTimeout(() => {
                     copyBtn.innerText = originalText;
                     copyBtn.style.color = "";
+                    copyBtn.style.borderColor = "";
                 }, 2000);
             });
         }
