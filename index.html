@@ -6,23 +6,24 @@
     <title>Competitor Gap Scanner</title>
     <style>
         :root {
-            --bg-color: #050505;
-            --card-bg: #121212;
-            --input-bg: #1e1e1e;
+            /* Branding: Writesonic-inspired Dark Mode */
+            --bg-color: #000000;       /* Pitch black background */
+            --card-bg: #121212;        /* Dark gray card */
+            --input-bg: #1e1e1e;       /* Input fields */
             --text-main: #ffffff;
             --text-muted: #a0a0a0;
-            --accent-primary: #6e41e2; /* Writesonic Purple */
+            --accent-primary: #6e41e2; /* Purple accent */
             --accent-hover: #5835b0;
             --border-color: #333333;
             --success: #2ecc71;
-            --error: #e74c3c;
+            --error: #ff4d4d;
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
         }
 
         body {
@@ -46,31 +47,34 @@
         /* Header */
         header {
             text-align: center;
+            margin-bottom: 1rem;
         }
 
         h1 {
-            font-size: 2rem;
+            font-size: 2.2rem;
             font-weight: 700;
             background: linear-gradient(90deg, #fff, var(--accent-primary));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             margin-bottom: 0.5rem;
+            letter-spacing: -0.02em;
         }
 
         .subtitle {
             color: var(--text-muted);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
 
-        /* Forms */
+        /* Card Container */
         .card {
             background-color: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-radius: 12px;
+            border-radius: 16px;
             padding: 2rem;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         }
 
+        /* Form Elements */
         .form-group {
             margin-bottom: 1.25rem;
         }
@@ -85,32 +89,36 @@
 
         input {
             width: 100%;
-            padding: 12px 16px;
+            padding: 14px 16px;
             background-color: var(--input-bg);
             border: 1px solid var(--border-color);
             border-radius: 8px;
             color: var(--text-main);
             font-size: 1rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
+            transition: all 0.2s ease;
         }
 
         input:focus {
             outline: none;
             border-color: var(--accent-primary);
-            box-shadow: 0 0 0 3px rgba(110, 65, 226, 0.2);
+            box-shadow: 0 0 0 4px rgba(110, 65, 226, 0.15);
         }
 
-        /* API Key Section */
+        input::placeholder {
+            color: #555;
+        }
+
+        /* API Key Specifics */
         .api-section {
             border-bottom: 1px solid var(--border-color);
             padding-bottom: 1.5rem;
             margin-bottom: 1.5rem;
         }
 
-        /* Button */
+        /* Action Button */
         .btn {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background-color: var(--accent-primary);
             color: white;
             border: none;
@@ -118,27 +126,30 @@
             font-size: 1rem;
             font-weight: 600;
             cursor: pointer;
-            transition: background-color 0.2s, transform 0.1s;
+            transition: all 0.2s;
+            margin-top: 0.5rem;
         }
 
         .btn:hover {
             background-color: var(--accent-hover);
+            transform: translateY(-1px);
         }
 
         .btn:active {
-            transform: scale(0.98);
+            transform: translateY(0);
         }
 
         .btn:disabled {
             opacity: 0.6;
             cursor: not-allowed;
+            transform: none;
         }
 
         /* Results Area */
         #results-container {
             display: none; /* Hidden by default */
             margin-top: 2rem;
-            animation: fadeIn 0.5s ease;
+            animation: fadeIn 0.4s ease-out;
         }
 
         .result-header {
@@ -148,20 +159,27 @@
             margin-bottom: 1rem;
         }
 
+        .result-header h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
         .result-content {
             background-color: var(--input-bg);
             border-radius: 8px;
             padding: 1.5rem;
             border-left: 4px solid var(--accent-primary);
-            white-space: pre-wrap; /* Preserve markdown-like spacing */
+            white-space: pre-wrap; /* Preserves formatting */
             font-size: 0.95rem;
+            line-height: 1.7;
+            color: #eee;
         }
 
         .copy-btn {
-            background: transparent;
+            background: rgba(255,255,255,0.05);
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            padding: 6px 12px;
+            padding: 8px 14px;
             border-radius: 6px;
             font-size: 0.8rem;
             cursor: pointer;
@@ -169,39 +187,37 @@
         }
 
         .copy-btn:hover {
-            border-color: var(--text-main);
+            background: rgba(255,255,255,0.1);
             color: var(--text-main);
         }
 
-        /* Loading Spinner */
+        /* Loading Spinner & Animations */
         .spinner {
             display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(255,255,255,0.3);
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
             border-radius: 50%;
             border-top-color: #fff;
-            animation: spin 1s ease-in-out infinite;
-            margin-right: 10px;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
             vertical-align: middle;
         }
 
         .error-msg {
             color: var(--error);
+            background: rgba(231, 76, 60, 0.1);
+            border: 1px solid rgba(231, 76, 60, 0.2);
+            padding: 12px;
+            border-radius: 8px;
             font-size: 0.9rem;
-            margin-top: 1rem;
+            margin-top: 1.5rem;
             display: none;
             text-align: center;
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body>
@@ -209,14 +225,14 @@
     <div class="container">
         <header>
             <h1>Competitor Gap Scanner</h1>
-            <p class="subtitle">AI-Powered Content & Feature Gap Analysis</p>
+            <p class="subtitle">Enter URLs to find actionable gaps instantly.</p>
         </header>
 
         <main class="card">
             <div class="api-section">
                 <div class="form-group">
-                    <label for="apiKey">Google Gemini API Key</label>
-                    <input type="password" id="apiKey" placeholder="Paste your API Key here (e.g. AIzaSy...)" autocomplete="off">
+                    <label for="apiKey">Google Gemini API Key (Free Tier OK)</label>
+                    <input type="password" id="apiKey" placeholder="Paste key (starts with AIza...)" autocomplete="off">
                 </div>
             </div>
 
@@ -231,8 +247,8 @@
             </div>
 
             <div class="form-group">
-                <label for="topic">Analysis Topic</label>
-                <input type="text" id="topic" placeholder="e.g. SEO Features, Pricing Model, UI/UX">
+                <label for="topic">Topic to Analyze</label>
+                <input type="text" id="topic" placeholder="e.g. Pricing, Features, UX">
             </div>
 
             <button id="scanBtn" class="btn">Scan for Gaps</button>
@@ -242,14 +258,18 @@
         <div id="results-container" class="card">
             <div class="result-header">
                 <h3>Analysis Results</h3>
-                <button id="copyBtn" class="copy-btn">Copy to Clipboard</button>
+                <button id="copyBtn" class="copy-btn">Copy Results</button>
             </div>
             <div id="resultContent" class="result-content"></div>
         </div>
     </div>
 
     <script>
-        // DOM Elements
+        // --- Configuration ---
+        // Using v1 endpoint with gemini-pro (Stable for Free Tier)
+        const API_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent";
+
+        // --- DOM Elements ---
         const scanBtn = document.getElementById('scanBtn');
         const copyBtn = document.getElementById('copyBtn');
         const apiKeyInput = document.getElementById('apiKey');
@@ -260,34 +280,43 @@
         const resultContent = document.getElementById('resultContent');
         const errorMsg = document.getElementById('errorMsg');
 
-        // Logic
-        scanBtn.addEventListener('click', async () => {
-            // 1. Validation
+        // --- Event Listeners ---
+        scanBtn.addEventListener('click', handleScan);
+        copyBtn.addEventListener('click', handleCopy);
+
+        // --- Main Logic ---
+        async function handleScan() {
+            // 1. Get Values
             const apiKey = apiKeyInput.value.trim();
             const myUrl = myUrlInput.value.trim();
             const compUrl = compUrlInput.value.trim();
             const topic = topicInput.value.trim();
 
-            resetUI();
+            // 2. Clear previous state
+            hideError();
+            resultsContainer.style.display = 'none';
 
-            if (!apiKey || !myUrl || !compUrl || !topic) {
-                showError("Please fill in all fields, including the API Key.");
+            // 3. Validation
+            if (!apiKey) {
+                showError("Please enter your Google Gemini API Key.");
+                return;
+            }
+            if (!myUrl || !compUrl || !topic) {
+                showError("Please fill in both URLs and the Topic.");
                 return;
             }
 
-            // 2. Loading State
+            // 4. Set Loading
             setLoading(true);
 
-            // 3. Construct Prompt
+            // 5. Prepare Prompt
             const prompt = `Analyze the gap between Brand A (${myUrl}) and Brand B (${compUrl}) for the topic "${topic}". List 3 things Brand B covers that Brand A is missing. Keep it short and actionable.`;
 
-            // 4. API Call
+            // 6. API Call
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+                const response = await fetch(`${API_URL}?key=${apiKey}`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         contents: [{
                             parts: [{ text: prompt }]
@@ -298,64 +327,70 @@
                 const data = await response.json();
 
                 if (!response.ok) {
-                    throw new Error(data.error?.message || "Failed to fetch analysis");
+                    throw new Error(data.error?.message || `API Error: ${response.statusText}`);
                 }
 
-                // 5. Display Results
-                const rawText = data.candidates[0].content.parts[0].text;
-                displayResults(rawText);
+                // 7. Parse Result
+                if (data.candidates && data.candidates.length > 0 && data.candidates[0].content) {
+                    const text = data.candidates[0].content.parts[0].text;
+                    displayResults(text);
+                } else if (data.promptFeedback && data.promptFeedback.blockReason) {
+                    throw new Error(`Content blocked by safety filters: ${data.promptFeedback.blockReason}`);
+                } else {
+                    throw new Error("No results returned. Try a different topic.");
+                }
 
             } catch (err) {
-                showError(`Error: ${err.message}`);
+                showError(err.message);
             } finally {
                 setLoading(false);
             }
-        });
+        }
 
-        // Copy Functionality
-        copyBtn.addEventListener('click', () => {
-            const text = resultContent.innerText;
-            navigator.clipboard.writeText(text).then(() => {
-                const originalText = copyBtn.innerText;
-                copyBtn.innerText = "Copied!";
-                copyBtn.style.color = "var(--success)";
-                copyBtn.style.borderColor = "var(--success)";
-                
-                setTimeout(() => {
-                    copyBtn.innerText = originalText;
-                    copyBtn.style.color = "";
-                    copyBtn.style.borderColor = "";
-                }, 2000);
-            });
-        });
+        // --- Helper Functions ---
 
-        // Helper Functions
+        function displayResults(text) {
+            resultContent.innerText = text;
+            resultsContainer.style.display = 'block';
+            // Scroll to results
+            resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
         function setLoading(isLoading) {
             if (isLoading) {
                 scanBtn.disabled = true;
-                scanBtn.innerHTML = '<span class="spinner"></span> Scanning...';
-                resultsContainer.style.display = 'none';
+                scanBtn.innerHTML = '<span class="spinner"></span> Analyzing...';
             } else {
                 scanBtn.disabled = false;
                 scanBtn.innerText = 'Scan for Gaps';
             }
         }
 
-        function displayResults(text) {
-            // Basic cleanup of bold markers for cleaner display if needed, 
-            // or leave as is since we use pre-wrap.
-            resultContent.innerText = text; 
-            resultsContainer.style.display = 'block';
-        }
-
-        function showError(message) {
-            errorMsg.innerText = message;
+        function showError(msg) {
+            errorMsg.innerText = msg;
             errorMsg.style.display = 'block';
         }
 
-        function resetUI() {
+        function hideError() {
             errorMsg.style.display = 'none';
-            resultsContainer.style.display = 'none';
+        }
+
+        function handleCopy() {
+            const text = resultContent.innerText;
+            if (!text) return;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const originalText = copyBtn.innerText;
+                copyBtn.innerText = "Copied!";
+                copyBtn.style.borderColor = "var(--success)";
+                copyBtn.style.color = "var(--success)";
+                
+                setTimeout(() => {
+                    copyBtn.innerText = originalText;
+                    copyBtn.style.borderColor = "";
+                    copyBtn.style.color = "";
+                }, 2000);
+            });
         }
     </script>
 </body>
